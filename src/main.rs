@@ -336,13 +336,12 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Some(channel) => channel,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
-
             return Ok(());
         }
     };
     let (_, success) = manager.join(guild_id, connect_to).await;
 
-    if let Ok(_channel) = success {
+    if let Ok(_) = success {
         check_msg(
             msg.channel_id
                 .say(&ctx.http, &format!("Joined {}", connect_to.mention()))
@@ -511,8 +510,7 @@ async fn stop(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
 
     let manager = songbird::get(ctx)
         .await
-        .expect("Songbird Voice client placed in at initialisation.")
-        .clone();
+        .expect("Songbird Voice client placed in at initialisation.");
 
     if let Some(handler_lock) = manager.get(guild_id) {
         let handler = handler_lock.lock().await;
