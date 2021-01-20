@@ -5,7 +5,6 @@ use std::{
     },
     time::Duration,
 };
-
 use serenity::{
     async_trait,
     client::{Client, Context, EventHandler},
@@ -22,17 +21,12 @@ use serenity::{
     Result as SerenityResult,
 };
 
-use songbird::{
-    input::{
-        self,
-        restartable::Restartable,
-    },
-    Event,
-    EventContext,
-    EventHandler as VoiceEventHandler,
-    SerenityInit,
-    TrackEvent,
-};
+use songbird::{input::{
+    self,
+    restartable::Restartable,
+}, Event, EventContext, EventHandler as VoiceEventHandler, SerenityInit, TrackEvent, Call};
+
+use tokio::sync::Mutex;
 
 struct Handler;
 
@@ -82,7 +76,7 @@ async fn deafen(ctx: &Context, msg: &Message) -> CommandResult {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let handler_lock = match manager.get(guild_id) {
+    let handler_lock: Arc<Mutex<Call>> = match manager.get(guild_id) {
         Some(handler) => handler,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
@@ -516,7 +510,20 @@ async fn stop(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
         let handler = handler_lock.lock().await;
         let queue = handler.queue();
         let _ = queue.stop();
+        let has_handler = manager.get(guild_id).is_some();
+        if has_handler {
+            if let Err(e) = manager.remove(guild_id).await {
+                check_msg(
+                    msg.channel_id
+                        .say(&ctx.http, format!("Failed: {:?}", e))
+                        .await,
+                );
+            }
 
+            check_msg(msg.channel_id.say(&ctx.http, "Left voice channel").await);
+        } else {
+            check_msg(msg.reply(ctx, "Not in a voice channel").await);
+        }
         check_msg(msg.channel_id.say(&ctx.http, "Queue cleared.").await);
     } else {
         check_msg(
