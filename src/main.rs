@@ -209,9 +209,8 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         let source = match songbird::ytdl(&url).await {
             Ok(source) => source,
             Err(why) => {
-                println!("Err starting source: {:?}", why);
-
-                check_msg(msg.channel_id.say(&ctx.http, "Error sourcing ffmpeg").await);
+                let error = format!("Error staring source {:?}", why);
+                check_msg(msg.channel_id.say(&ctx.http, error).await);
 
                 return Ok(());
             }
@@ -231,7 +230,7 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
     let guild = msg.guild(&ctx.cache).await.unwrap();
     let guild_id = guild.id;
     let manager = songbird::get(ctx).await
-        .expect("Voice client placed at initialisation");
+        .expect("Voice client placed at initialisation").clone();
 
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
