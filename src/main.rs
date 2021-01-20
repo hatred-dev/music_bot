@@ -236,9 +236,9 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
         handler.stop();
-        check_msg(msg.channel_id.say(&ctx.http, "Stopped"))
+        check_msg(msg.channel_id.say(&ctx.http, "Stopped").await);
     } else {
-        check_msg(msg.channel_id.say(&ctx.http, "Not in a voice channel to stop"))
+        check_msg(msg.channel_id.say(&ctx.http, "Not in a voice channel to stop").await);
     }
 
     Ok(())
