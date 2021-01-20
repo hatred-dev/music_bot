@@ -47,7 +47,7 @@ async fn main() {
     tracing_subscriber::fmt::init();
 
     // Configure the client with your Discord bot token in the environment.
-    let token = String::from("NjQ1NzIyNDQ5MjM2ODUyNzM5.XdGt5A.5JDJY26ghh_eNxtw9Figqgvz7qs");
+    let token = String::from("NjA3MTQyNTUzOTE3MTk0MjQw.XUVTkQ.OOAsOm7kJbht0btlkA5nnqAnMRM");
 
     let framework = StandardFramework::new()
         .configure(|c| c.prefix("~"))
