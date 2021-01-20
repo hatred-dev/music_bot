@@ -32,7 +32,7 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(deafen, join, leave, mute, play, ping, undeafen, unmute)]
+#[commands(deafen, join, leave, mute, play, ping, undeafen, unmute, stop)]
 struct General;
 
 #[tokio::main]
@@ -216,9 +216,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
-
         handler.play_source(source);
-
         check_msg(msg.channel_id.say(&ctx.http, "Playing song").await);
     } else {
         check_msg(msg.channel_id.say(&ctx.http, "Not in a voice channel to play in").await);
@@ -226,6 +224,26 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
     Ok(())
 }
+
+#[command]
+#[only_in(guilds)]
+async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+    let guild_id = guild.id;
+    let manager = songbird::get(ctx).await
+        .expect("Voice client placed at initialisation");
+
+    if let Some(handler_lock) = manager.get(guild_id) {
+        let mut handler = handler_lock.lock().await;
+        handler.stop();
+        check_msg(msg.channel_id.say(&ctx.http, "Stopped"))
+    } else {
+        check_msg(msg.channel_id.say(&ctx.http, "Not in a voice channel to stop"))
+    }
+
+    Ok(())
+}
+
 
 #[command]
 #[only_in(guilds)]
