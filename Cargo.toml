@@ -7,9 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serenity = { version = "0.10.2", default-features = false, features = ["client", "gateway", "rustls_backend", "model", "voice", "framework", "cache", "standard_framework"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
-songbird = { version = "0.1.0", features = ["builtin-queue"] }
 tracing-subscriber = "0.2.15"
 tracing = "0.1.22"
 tracing-futures = "0.2.4"
+futures = "0.3.12"
+serde_json = { version = "1" }
+twilight-gateway = "0.3"
+twilight-http = "0.3"
+twilight-model = "0.3"
+twilight-standby = "0.3"
+songbird = { version = "0.1.1", default-features = false, features = ["twilight-rustls", "gateway", "driver", "stock-zlib"] }
