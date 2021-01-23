@@ -1,7 +1,7 @@
 // This trait adds the `register_songbird` and `register_songbird_with` methods
 // to the client builder below, making it easy to install this voice client.
 // The voice client can be retrieved in any command using `songbird::get(ctx).await`.
-use songbird::SerenityInit;
+use songbird::{SerenityInit, Call};
 
 // Import the `Context` to handle commands.
 use serenity::client::Context;
@@ -22,6 +22,8 @@ use serenity::{
 use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
+use serenity::prelude::Mutex;
+use std::sync::Arc;
 
 struct Handler;
 
@@ -170,11 +172,10 @@ async fn mute(ctx: &Context, msg: &Message) -> CommandResult {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let handler_lock = match manager.get(guild_id) {
+    let handler_lock: Arc<Mutex<Call>> = match manager.get(guild_id) {
         Some(handler) => handler,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
-
             return Ok(());
         }
     };
@@ -243,8 +244,8 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
+        check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
         handler.play_source(source);
-        check_msg(msg.channel_id.say(&ctx.http, "Playing song").await);
     } else {
         check_msg(
             msg.channel_id
@@ -363,5 +364,3 @@ fn load_config(file: &str) -> (String, String) {
     let prefix: &str = docs[index]["prefix"].as_str().expect("Failed to parse prefix").trim();
     (token.parse().unwrap(), prefix.parse().unwrap())
 }
-
-
