@@ -21,7 +21,7 @@ use serenity::{
 
 use std::fs::File;
 use std::io::prelude::*;
-use yaml_rust::YamlLoader;
+use yaml_rust::{YamlLoader, Yaml};
 
 struct Handler;
 
@@ -354,12 +354,14 @@ fn check_msg(result: SerenityResult<Message>) {
 }
 
 fn load_config(file: &str) -> (String, String) {
-    let mut file = File::open(file).expect("Unable to open file");
-    let mut contents = String::new();
+    let mut file: File = File::open(file).expect("Unable to open file");
+    let mut contents: String = String::new();
     file.read_to_string(&mut contents).expect("Unable to read file");
-    let docs = YamlLoader::load_from_str(&contents).unwrap();
+    let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
     let index: usize = 0;
-    let token = docs[index]["token"].as_str().expect("Failed to parse token").trim();
-    let prefix = docs[index]["prefix"].as_str().expect("Failed to parse prefix").trim();
+    let token: &str = docs[index]["token"].as_str().expect("Failed to parse token").trim();
+    let prefix: &str = docs[index]["prefix"].as_str().expect("Failed to parse prefix").trim();
     (token.parse().unwrap(), prefix.parse().unwrap())
 }
+
+
