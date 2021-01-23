@@ -1,9 +1,4 @@
-// This trait adds the `register_songbird` and `register_songbird_with` methods
-// to the client builder below, making it easy to install this voice client.
-// The voice client can be retrieved in any command using `songbird::get(ctx).await`.
 use songbird::{SerenityInit, Call};
-
-// Import the `Context` to handle commands.
 use serenity::client::Context;
 use serenity::{
     async_trait,
@@ -98,7 +93,6 @@ async fn deafen(ctx: &Context, msg: &Message) -> CommandResult {
 
         check_msg(msg.channel_id.say(&ctx.http, "Deafened").await);
     }
-
     Ok(())
 }
 
@@ -157,7 +151,6 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
     } else {
         check_msg(msg.reply(ctx, "Not in a voice channel").await);
     }
-
     Ok(())
 }
 
@@ -195,14 +188,12 @@ async fn mute(ctx: &Context, msg: &Message) -> CommandResult {
 
         check_msg(msg.channel_id.say(&ctx.http, "Now muted").await);
     }
-
     Ok(())
 }
 
 #[command]
 async fn ping(context: &Context, msg: &Message) -> CommandResult {
     check_msg(msg.channel_id.say(&context.http, "Pong!").await);
-
     Ok(())
 }
 
@@ -277,7 +268,6 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
                 .await,
         );
     }
-
     Ok(())
 }
 
@@ -310,7 +300,6 @@ async fn undeafen(ctx: &Context, msg: &Message) -> CommandResult {
                 .await,
         );
     }
-
     Ok(())
 }
 
@@ -334,7 +323,6 @@ async fn unmute(ctx: &Context, msg: &Message) -> CommandResult {
                     .await,
             );
         }
-
         check_msg(msg.channel_id.say(&ctx.http, "Unmuted").await);
     } else {
         check_msg(
@@ -343,7 +331,6 @@ async fn unmute(ctx: &Context, msg: &Message) -> CommandResult {
                 .await,
         );
     }
-
     Ok(())
 }
 
