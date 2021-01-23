@@ -13,3 +13,4 @@ tracing-futures = "0.2.4"
 songbird = "0.1.1"
 serenity = { verison = "0.10.2", featurs = ["client", "standard_framework", "voice", "rustls_backend"] }
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+yaml-rust = "0.4.5"
