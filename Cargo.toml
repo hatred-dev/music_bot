@@ -10,7 +10,7 @@ edition = "2018"
 tracing = "0.1.22"
 tracing-subscriber = "0.2.15"
 tracing-futures = "0.2.4"
-songbird = "0.1.1"
+songbird = "0.1.2"
 serenity = "0.10.2"
 tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 yaml-rust = "0.4.5"
