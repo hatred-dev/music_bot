@@ -20,6 +20,13 @@ use yaml_rust::{YamlLoader, Yaml};
 use serenity::prelude::Mutex;
 use std::sync::Arc;
 
+use songbird::{
+    input::{
+        self,
+        restartable::Restartable,
+    }
+};
+
 struct Handler;
 
 #[async_trait]
@@ -30,7 +37,7 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(deafen, join, leave, mute, play, ping, undeafen, unmute, stop)]
+#[commands(deafen, join, leave, mute, play, ping, undeafen, unmute, stop, queue)]
 struct General;
 
 #[tokio::main]
@@ -226,7 +233,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         .clone();
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
-        let source = match songbird::ytdl(&url).await {
+        let source = match input::ytdl(&url).await {
             Ok(source) => source,
             Err(why) => {
                 let error = format!("Error staring source {:?}", why);
@@ -237,6 +244,70 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         handler.stop();
         check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
         handler.play_source(source);
+    } else {
+        check_msg(
+            msg.channel_id
+                .say(&ctx.http, "Not in a voice channel to play in")
+                .await,
+        );
+    }
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn queue(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let url: String = match args.single::<String>() {
+        Ok(url) => url,
+        Err(_) => {
+            check_msg(
+                msg.channel_id
+                    .say(&ctx.http, "Must provide a URL to a video or audio")
+                    .await,
+            );
+            return Ok(());
+        }
+    };
+    if !url.starts_with("http") {
+        check_msg(
+            msg.channel_id
+                .say(&ctx.http, "Must provide a valid URL")
+                .await,
+        );
+        return Ok(());
+    }
+    let guild = msg.guild(&ctx.cache).await.unwrap();
+    let guild_id = guild.id;
+    let manager = songbird::get(ctx)
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
+
+    if let Some(handler_lock) = manager.get(guild_id) {
+        let mut handler = handler_lock.lock().await;
+        // Here, we use lazy restartable sources to make sure that we don't pay
+        // for decoding, playback on tracks which aren't actually live yet.
+        let source = match Restartable::ytdl(url, true).await {
+            Ok(source) => source,
+            Err(why) => {
+                println!("Err starting source: {:?}", why);
+
+                check_msg(msg.channel_id.say(&ctx.http, "Error sourcing ffmpeg").await);
+
+                return Ok(());
+            }
+        };
+
+        handler.enqueue_source(source.into());
+
+        check_msg(
+            msg.channel_id
+                .say(
+                    &ctx.http,
+                    format!("Added song to queue: position {}", handler.queue().len()),
+                )
+                .await,
+        );
     } else {
         check_msg(
             msg.channel_id
