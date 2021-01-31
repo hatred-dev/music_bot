@@ -38,7 +38,6 @@ async fn main() {
     tracing_subscriber::fmt::init();
     //load configuration file
     let conf = load_config("config.yaml");
-    // Configure the client with your Discord bot token in the environment.
     let token = String::from(&*conf.0);
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(&*conf.1))
@@ -235,6 +234,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
+        handler.stop();
         check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
         handler.play_source(source);
     } else {
