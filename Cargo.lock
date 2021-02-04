@@ -119,6 +119,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bot"
+version = "0.1.0"
+dependencies = [
+ "serenity",
+ "songbird",
+ "tokio",
+ "tracing",
+ "tracing-futures",
+ "tracing-subscriber",
+ "yaml-rust",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1174,19 +1187,6 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi 0.3.9",
-]
-
-[[package]]
-name = "rust_book"
-version = "0.1.0"
-dependencies = [
- "serenity",
- "songbird",
- "tokio",
- "tracing",
- "tracing-futures",
- "tracing-subscriber",
- "yaml-rust",
 ]
 
 [[package]]

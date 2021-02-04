@@ -1,4 +1,4 @@
-use songbird::{SerenityInit, Call};
+use songbird::{SerenityInit};
 use serenity::client::Context;
 use serenity::{
     async_trait,
@@ -17,8 +17,6 @@ use serenity::{
 use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
-use serenity::prelude::Mutex;
-use std::sync::Arc;
 
 use songbird::{
     input::{
@@ -171,7 +169,7 @@ async fn mute(ctx: &Context, msg: &Message) -> CommandResult {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
 
-    let handler_lock: Arc<Mutex<Call>> = match manager.get(guild_id) {
+    let handler_lock = match manager.get(guild_id) {
         Some(handler) => handler,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
@@ -249,7 +247,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         };
 
         check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
-        handler.play_only_source(source);
+        handler.play_source(source);
     } else {
         check_msg(
             msg.channel_id
@@ -423,8 +421,7 @@ fn load_config(file: &str) -> (String, String) {
     let mut contents: String = String::new();
     file.read_to_string(&mut contents).expect("Unable to read file");
     let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
-    let index: usize = 0;
-    let token: &str = docs[index]["token"].as_str().expect("Failed to parse token").trim();
-    let prefix: &str = docs[index]["prefix"].as_str().expect("Failed to parse prefix").trim();
+    let token: &str = docs[0 as usize]["token"].as_str().expect("Failed to parse token").trim();
+    let prefix: &str = docs[0 as usize]["prefix"].as_str().expect("Failed to parse prefix").trim();
     (token.parse().unwrap(), prefix.parse().unwrap())
 }

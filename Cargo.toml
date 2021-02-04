@@ -1,5 +1,5 @@
 [package]
-name = "rust_book"
+name = "bot"
 version = "0.1.0"
 authors = ["Edward Zelis <zeledvards@gmail.com>"]
 edition = "2018"
