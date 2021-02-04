@@ -24,6 +24,7 @@ use songbird::{
         restartable::Restartable,
     }
 };
+static mut IS_PLAYING:bool = false;
 
 struct Handler;
 
@@ -229,6 +230,12 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
+        unsafe {
+            if IS_PLAYING{
+                handler.stop();
+                check_msg(msg.channel_id.say(&ctx.http,"Buffer flushed").await)
+            }
+        }
         let source = match input::ytdl(&url).await {
             Ok(source) => source,
             Err(why) => {
@@ -237,8 +244,10 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
-
         check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
+        unsafe {
+            IS_PLAYING = true;
+        }
         handler.play_source(source);
     } else {
         check_msg(
@@ -327,6 +336,9 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
         handler.stop();
+        unsafe {
+            IS_PLAYING = false;
+        }
         check_msg(msg.channel_id.say(&ctx.http, "Stopped").await);
     } else {
         check_msg(
