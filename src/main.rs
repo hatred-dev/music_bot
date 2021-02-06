@@ -253,7 +253,9 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
-        check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title.as_deref().unwrap_or("Unable to get title"))).await);
+        check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title
+            .as_deref()
+            .unwrap_or("Unable to get title"))).await);
         handler.play_only_source(source);
     } else {
         check_msg(
@@ -308,9 +310,7 @@ async fn queue(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
-
         handler.enqueue_source(source.into());
-
         check_msg(
             msg.channel_id
                 .say(
