@@ -24,7 +24,6 @@ use songbird::{
         restartable::Restartable,
     }
 };
-static mut IS_PLAYING:bool = false;
 
 struct Handler;
 
@@ -343,9 +342,6 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
         handler.stop();
-        unsafe {
-            IS_PLAYING = false;
-        }
         check_msg(msg.channel_id.say(&ctx.http, "Stopped").await);
     } else {
         check_msg(
