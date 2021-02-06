@@ -246,12 +246,6 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let _handler = manager.join(guild_id,connect_to).await;
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
-        unsafe {
-            if IS_PLAYING{
-                handler.stop();
-                check_msg(msg.channel_id.say(&ctx.http,"Buffer flushed").await)
-            }
-        }
         let source = match input::ytdl(&url).await {
             Ok(source) => source,
             Err(why) => {
