@@ -304,9 +304,7 @@ async fn queue(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             Ok(source) => source,
             Err(why) => {
                 println!("Err starting source: {:?}", why);
-
                 check_msg(msg.channel_id.say(&ctx.http, "Error sourcing ffmpeg").await);
-
                 return Ok(());
             }
         };
