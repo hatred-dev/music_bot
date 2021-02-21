@@ -2,3 +2,4 @@
 *.exe
 *.html
 config.yaml
+.idea
