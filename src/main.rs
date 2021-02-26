@@ -256,7 +256,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title
             .as_deref()
             .unwrap_or("Unable to get title"))).await);
-        handler.play_only_source(source);
+        handler.play_source(source);
     } else {
         check_msg(
             msg.channel_id
