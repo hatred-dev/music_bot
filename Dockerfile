@@ -7,5 +7,5 @@ RUN apk add ffmpeg
 WORKDIR /rust-bot
 COPY target/release/bot .
 COPY config.yaml .
-CMD ["ls -al"]
+COPY . ./
 CMD ["./bot"]
