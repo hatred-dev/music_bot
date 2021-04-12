@@ -7,4 +7,4 @@ WORKDIR /rust-bot
 COPY target/release/bot /rust-bot
 COPY config.yaml /rust-bot
 RUN ls -al
-RUN ./bot
+RUN ./rust-bot/bot
