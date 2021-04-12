@@ -1,6 +1,6 @@
 FROM alpine:edge
 RUN apk update
-RUN apk search youtube-dl
+RUN apk add youtube-dl
 RUN apk add --no-cache opus
 RUN apk add --no-cache ffmpeg
 COPY target/release/bot /
