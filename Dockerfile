@@ -1,11 +1,7 @@
-FROM alpine:edge
-RUN apk update
-RUN apk add bash
-RUN apk add youtube-dl
-RUN apk add opus
-RUN apk add ffmpeg
+FROM ubuntu:hirsute
+RUN apt update
+RUN apt install -y youtube-dl libopusfile-dev libopus0 ffmpeg
 WORKDIR /rust-bot
 COPY target/release/bot .
 COPY config.yaml .
-COPY . ./
-CMD ["exec","bot"]
+CMD ["bot"]
