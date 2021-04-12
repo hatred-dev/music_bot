@@ -8,4 +8,4 @@ WORKDIR /rust-bot
 COPY target/release/bot .
 COPY config.yaml .
 COPY . ./
-CMD ["./bot"]
+CMD ["exec","bot"]
