@@ -5,4 +5,5 @@ RUN apk add opus
 RUN apk add ffmpeg
 WORKDIR /rust-bot
 COPY target/release/bot /rust-bot
-RUN bot
+COPY config.yaml /rust-bot
+RUN ./bot
