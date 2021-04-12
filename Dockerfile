@@ -7,4 +7,4 @@ WORKDIR /rust-bot
 COPY target/release/bot /rust-bot
 COPY config.yaml /rust-bot
 RUN pwd
-CMD ["/bin/bash","-c","pwd"]
+CMD ["/bin/ash","-c","pwd"]
