@@ -1,7 +1,8 @@
 FROM alpine:edge
 RUN apk update
 RUN apk add youtube-dl
-RUN apk add --no-cache opus
-RUN apk add --no-cache ffmpeg
-COPY target/release/bot /
-CMD ["bash", "-c","echo $HOME"]
+RUN apk add opus
+RUN apk add ffmpeg
+WORKDIR /rust-bot
+COPY target/release/bot /rust-bot
+RUN bot
