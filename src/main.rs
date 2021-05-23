@@ -1,4 +1,4 @@
-use songbird::{SerenityInit, create_player};
+use songbird::{SerenityInit};
 use serenity::client::Context;
 use serenity::{
     async_trait,
@@ -13,18 +13,11 @@ use serenity::{
     model::{channel::Message, gateway::Ready},
     Result as SerenityResult,
 };
-
+use songbird::input;
 use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
-use songbird::{
-    input::{
-        self,
-        restartable::Restartable,
-    }
-};
-use openweathermap::CurrentWeather;
 
 struct Handler;
 
@@ -45,7 +38,6 @@ async fn main() {
     //load configuration file
     let conf = load_config("config.yaml");
     let token = String::from(conf.0.as_str());
-    let openweather = String::from(conf.2.as_str());
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(conf.1.as_str()))
         .group(&GENERAL_GROUP);
@@ -65,7 +57,7 @@ async fn main() {
 
 #[command]
 #[only_in(guilds)]
-async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     let conf = load_config("config.yaml");
     let open_weather_token = String::from(conf.2.as_str());
     if open_weather_token == "" {
