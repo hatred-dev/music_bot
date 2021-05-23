@@ -1,4 +1,4 @@
-use songbird::{SerenityInit};
+use songbird::{SerenityInit, create_player};
 use serenity::client::Context;
 use serenity::{
     async_trait,
@@ -17,13 +17,14 @@ use serenity::{
 use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
-
+use openweathermap::blocking::weather as open_weather;
 use songbird::{
     input::{
         self,
         restartable::Restartable,
     }
 };
+use openweathermap::CurrentWeather;
 
 struct Handler;
 
@@ -35,7 +36,7 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(deafen, join, leave, mute, play, ping, undeafen, unmute, stop, queue)]
+#[commands(list, deafen, join, leave, mute, play, ping, undeafen, unmute, stop, weather)]
 struct General;
 
 #[tokio::main]
@@ -43,9 +44,10 @@ async fn main() {
     tracing_subscriber::fmt::init();
     //load configuration file
     let conf = load_config("config.yaml");
-    let token = String::from(&*conf.0);
+    let token = String::from(conf.0.as_str());
+    let openweather = String::from(conf.2.as_str());
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(&*conf.1))
+        .configure(|c| c.prefix(conf.1.as_str()))
         .group(&GENERAL_GROUP);
 
     let mut client = Client::builder(&token)
@@ -61,6 +63,36 @@ async fn main() {
         .map_err(|why| println!("Client ended: {:?}", why));
 }
 
+#[command]
+#[only_in(guilds)]
+async fn weather(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let conf = load_config("config.yaml");
+    let open_weather_token = String::from(conf.2.as_str());
+    if open_weather_token == "" {
+        return Ok(());
+    }
+    check_msg(msg.channel_id.say(
+        &ctx.http,
+        format!("{}", match &open_weather("Riga,LV", "metric", "en", open_weather_token.as_str()) {
+            Ok(current) =>
+                format!("Today's weather in {}:\n\
+                        Weather: {}\n\
+                        Temperature: {}\n\
+                        Feels like: {}\n\
+                        Humidity: {}%\n\
+                        Wind: {}m/s\n\
+                        Description: {}",
+                        current.name.as_str(),
+                        current.weather[0].main.as_str(),
+                        current.main.temp,
+                        current.main.feels_like,
+                        current.main.humidity,
+                        current.wind.speed,
+                        current.weather[0].description.as_str()),
+            Err(e) => format!("Could not fetch weather because: {}", e),
+        })).await);
+    Ok(())
+}
 
 #[command]
 #[only_in(guilds)]
@@ -236,13 +268,12 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         Some(channel) => channel,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
-
             return Ok(());
         }
     };
 
     let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
-    let _handler = manager.join(guild_id,connect_to).await;
+    let _ = manager.join(guild_id, connect_to).await;
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.lock().await;
         let source = match input::ytdl(&url).await {
@@ -269,61 +300,23 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
 #[command]
 #[only_in(guilds)]
-async fn queue(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
-    let url: String = match args.single::<String>() {
-        Ok(url) => url,
-        Err(_) => {
-            check_msg(
-                msg.channel_id
-                    .say(&ctx.http, "Must provide a URL to a video or audio")
-                    .await,
-            );
-            return Ok(());
-        }
-    };
-    if !url.starts_with("http") {
-        check_msg(
-            msg.channel_id
-                .say(&ctx.http, "Must provide a valid URL")
-                .await,
-        );
-        return Ok(());
-    }
+async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     let guild = msg.guild(&ctx.cache).await.unwrap();
     let guild_id = guild.id;
     let manager = songbird::get(ctx)
         .await
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
-
     if let Some(handler_lock) = manager.get(guild_id) {
-        let mut handler = handler_lock.lock().await;
-        let source = match Restartable::ytdl(url, true).await {
-            Ok(source) => source,
-            Err(why) => {
-                println!("Err starting source: {:?}", why);
-                check_msg(msg.channel_id.say(&ctx.http, "Error sourcing ffmpeg").await);
-                return Ok(());
-            }
-        };
-        handler.enqueue_source(source.into());
-        check_msg(
-            msg.channel_id
-                .say(
-                    &ctx.http,
-                    format!("Added song to queue: position {}", handler.queue().len()),
-                )
-                .await,
-        );
-    } else {
-        check_msg(
-            msg.channel_id
-                .say(&ctx.http, "Not in a voice channel to play in")
-                .await,
-        );
+        let handler = handler_lock.lock().await;
+        check_msg(msg.channel_id.say(
+            &ctx.http,
+            format!("Current song list: {:?}", handler.queue().current_queue()),
+        ).await)
     }
     Ok(())
 }
+
 
 #[command]
 #[only_in(guilds)]
@@ -418,12 +411,13 @@ fn check_msg(result: SerenityResult<Message>) {
     }
 }
 
-fn load_config(file: &str) -> (String, String) {
+fn load_config(file: &str) -> (String, String, String) {
     let mut file: File = File::open(file).expect("Unable to open file");
     let mut contents: String = String::new();
     file.read_to_string(&mut contents).expect("Unable to read file");
     let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
-    let token: &str = docs[0 as usize]["token"].as_str().expect("Failed to parse token").trim();
-    let prefix: &str = docs[0 as usize]["prefix"].as_str().expect("Failed to parse prefix").trim();
-    (token.parse().unwrap(), prefix.parse().unwrap())
+    let token: &str = docs[0usize]["token"].as_str().expect("Failed to parse token").trim();
+    let prefix: &str = docs[0usize]["prefix"].as_str().expect("Failed to parse prefix").trim();
+    let weather_token: &str = docs[0usize]["openweatherapi"].as_str().unwrap_or("");
+    (token.to_string(), prefix.to_string(), weather_token.to_string())
 }

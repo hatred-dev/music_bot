@@ -10,6 +10,7 @@ edition = "2018"
 tracing = "0.1.26"
 tracing-subscriber = "0.2.18"
 tracing-futures = "0.2.5"
+openweathermap= "0.1.7"
 
 serenity = "0.10.7"
 tokio = { version = "1.6.0", features = ["macros", "rt-multi-thread"] }
@@ -18,4 +19,3 @@ yaml-rust = "0.4.5"
 [dependencies.songbird]
 version = "0.1.6"
 features = ["builtin-queue"]
-
