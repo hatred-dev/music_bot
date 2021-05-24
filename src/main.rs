@@ -10,11 +10,11 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready, channel::Embed},
+    model::{channel::Message, gateway::Ready},
     Result as SerenityResult,
 };
 use songbird::input;
-use std::fs::{File, read_to_string};
+use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
