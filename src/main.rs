@@ -10,11 +10,11 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready},
+    model::{channel::Message, gateway::Ready, channel::Embed},
     Result as SerenityResult,
 };
 use songbird::input;
-use std::fs::File;
+use std::fs::{File, read_to_string};
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
@@ -59,30 +59,36 @@ async fn main() {
 #[only_in(guilds)]
 async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     let conf = load_config("config.yaml");
-    let open_weather_token = String::from(conf.2.as_str());
+    let open_weather_token = conf.2.as_str();
     if open_weather_token == "" {
         return Ok(());
     }
-    check_msg(msg.channel_id.say(
-        &ctx.http,
-        format!("{}", match &open_weather("Riga,LV", "metric", "en", open_weather_token.as_str()) {
-            Ok(current) =>
-                format!("Today's weather in {}:\n\
-                        Weather: {}\n\
-                        Temperature: {}\n\
-                        Feels like: {}\n\
-                        Humidity: {}%\n\
-                        Wind: {}m/s\n\
-                        Description: {}",
-                        current.name.as_str(),
-                        current.weather[0].main.as_str(),
-                        current.main.temp,
-                        current.main.feels_like,
-                        current.main.humidity,
-                        current.wind.speed,
-                        current.weather[0].description.as_str()),
-            Err(e) => format!("Could not fetch weather because: {}", e),
-        })).await);
+    let open_weather_obj = &open_weather("Riga,LV", "metric", "en",
+                                         open_weather_token).unwrap();
+    check_msg(msg.channel_id.send_message(&ctx.http, |m| {
+        m.embed(|e| {
+            e.author(|a| {
+                a.name("HATRED");
+                a.icon_url("https://cdn.discordapp.com/avatars/223800736809615360/59665bbb7ae61ddaa066b6586e9d18b5.png")
+            });
+            e.title(format!("Today's weather in **{}**", open_weather_obj.name.as_str()));
+            e.thumbnail(format!("https://openweathermap.org/img/wn/{}@4x.png", open_weather_obj.weather[0].icon));
+            e.colour(11027200);
+            e.description(format!("Weather: **{}**\n\
+                        Temperature: **{}°C**\n\
+                        Feels like: **{}°C**\n\
+                        Humidity: **{}%**\n\
+                        Wind: **{}m/s**\n\
+                        Description: **{}**",
+                                  open_weather_obj.weather[0].main.as_str().to_lowercase(),
+                                  open_weather_obj.main.temp,
+                                  open_weather_obj.main.feels_like,
+                                  open_weather_obj.main.humidity,
+                                  open_weather_obj.wind.speed,
+                                  open_weather_obj.weather[0].description.as_str()))
+        });
+        m
+    }).await);
     Ok(())
 }
 
