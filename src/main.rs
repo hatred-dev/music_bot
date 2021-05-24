@@ -19,6 +19,10 @@ use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
 
+const DISCORD_TOKEN: &str = "token";
+const PREFIX: &str = "prefix";
+const OPENWEATHER: &str = "openweather_token";
+
 struct Handler;
 
 #[async_trait]
@@ -415,8 +419,8 @@ fn load_config(file: &str) -> (String, String, String) {
     let mut contents: String = String::new();
     file.read_to_string(&mut contents).expect("Unable to read file");
     let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
-    let token: &str = docs[0usize]["token"].as_str().expect("Failed to parse token").trim();
-    let prefix: &str = docs[0usize]["prefix"].as_str().expect("Failed to parse prefix").trim();
-    let weather_token: &str = docs[0usize]["openweathertoken"].as_str().unwrap_or("");
+    let token: &str = docs[0usize][DISCORD_TOKEN].as_str().expect("Failed to parse token").trim();
+    let prefix: &str = docs[0usize][PREFIX].as_str().expect("Failed to parse prefix").trim();
+    let weather_token: &str = docs[0usize][OPENWEATHER].as_str().unwrap_or("");
     (token.to_string(), prefix.to_string(), weather_token.to_string())
 }
