@@ -417,6 +417,6 @@ fn load_config(file: &str) -> (String, String, String) {
     let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
     let token: &str = docs[0usize]["token"].as_str().expect("Failed to parse token").trim();
     let prefix: &str = docs[0usize]["prefix"].as_str().expect("Failed to parse prefix").trim();
-    let weather_token: &str = docs[0usize]["openweatherapi"].as_str().unwrap_or("");
+    let weather_token: &str = docs[0usize]["openweathertoken"].as_str().unwrap_or("");
     (token.to_string(), prefix.to_string(), weather_token.to_string())
 }
