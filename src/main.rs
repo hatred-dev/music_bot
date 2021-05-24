@@ -78,7 +78,7 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
             });
             e.title(format!("Today's weather in **{}**", open_weather_obj.name.as_str()));
             e.thumbnail(format!("https://openweathermap.org/img/wn/{}@4x.png", open_weather_obj.weather[0].icon));
-            e.colour(11027200);
+            e.colour(15105570);
             e.description(format!("Weather: **{}**\n\
                         Temperature: **{}°C**\n\
                         Feels like: **{}°C**\n\
