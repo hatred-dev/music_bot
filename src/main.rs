@@ -61,7 +61,7 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     let conf = load_config("config.yaml");
     let open_weather_token = conf.2.as_str();
     if open_weather_token == "" {
-        msg.channel_id.send_message(&ctx.http, "You did not specify openweather api key in configuration file").await;
+        msg.channel_id.say(&ctx.http, "You did not specify openweather api key in configuration file").await;
         return Ok(());
     }
     let open_weather_obj = &open_weather("Riga,LV", "metric", "en",
