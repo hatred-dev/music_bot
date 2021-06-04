@@ -35,7 +35,7 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(list, deafen, join, leave, mute, play, ping, undeafen, unmute, stop, weather, volume, skip)]
+#[commands(list, deafen, join, leave, mute, play, ping, undeafen, unmute, stop, weather, volume, skip, pause, resume)]
 struct General;
 
 #[tokio::main]
@@ -97,6 +97,33 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     }).await);
     Ok(())
 }
+
+#[command]
+#[only_in(guilds)]
+async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
+    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
+    let handler = handler_lock.lock().await;
+    let queue = handler.queue();
+    match queue.pause() {
+        Ok(_) => { check_msg(msg.channel_id.say(&ctx.http, "Current track is paused").await) }
+        Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to pause track: {}", e)).await) }
+    };
+    Ok(())
+}
+
+#[command]
+#[only_in(guilds)]
+async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
+    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
+    let handler = handler_lock.lock().await;
+    let queue = handler.queue();
+    match queue.resume() {
+        Ok(_) => { check_msg(msg.channel_id.say(&ctx.http, "Continue playing").await) }
+        Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to resume track: {}", e)).await) }
+    };
+    Ok(())
+}
+
 
 #[command]
 #[only_in(guilds)]
