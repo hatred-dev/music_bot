@@ -160,7 +160,6 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
         Some(channel) => channel,
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
-
             return Ok(());
         }
     };
@@ -171,7 +170,6 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
         .clone();
 
     let _handler = manager.join(guild_id, connect_to).await;
-
     Ok(())
 }
 
@@ -233,7 +231,6 @@ async fn mute(ctx: &Context, msg: &Message) -> CommandResult {
                     .await,
             );
         }
-
         check_msg(msg.channel_id.say(&ctx.http, "Now muted").await);
     }
     Ok(())
@@ -248,6 +245,7 @@ async fn ping(context: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let limit = 100f32;
     let mut vol = match args.single::<f32>() {
         Ok(volume) => volume,
         Err(_) => {
@@ -255,10 +253,10 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
-    if vol >= 100f32 {
-        vol = 100f32;
+    if vol > limit {
+        vol = limit;
     }
-    vol = vol / 100f32;
+    vol = vol / limit;
     let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
     let handler = handler_lock.lock().await;
 
@@ -269,7 +267,6 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Couldn't change volume: {}", e)).await) }
         };
     }
-
     Ok(())
 }
 
