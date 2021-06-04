@@ -101,12 +101,13 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
-    let handler = handler_lock.lock().await;
-    let queue = handler.queue();
-    match queue.pause() {
-        Ok(_) => {}
-        Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to pause track: {}", e)).await) }
+    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+        let handler = handler_lock.lock().await;
+        let queue = handler.queue();
+        match queue.pause() {
+            Ok(_) => {}
+            Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to pause track: {}", e)).await) }
+        };
     };
     Ok(())
 }
@@ -114,12 +115,13 @@ async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
-    let handler = handler_lock.lock().await;
-    let queue = handler.queue();
-    match queue.resume() {
-        Ok(_) => {}
-        Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to resume track: {}", e)).await) }
+    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+        let handler = handler_lock.lock().await;
+        let queue = handler.queue();
+        match queue.resume() {
+            Ok(_) => {}
+            Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to resume track: {}", e)).await) }
+        };
     };
     Ok(())
 }
@@ -257,16 +259,16 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         vol = limit;
     }
     vol = vol / limit;
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
-    let handler = handler_lock.lock().await;
-
-    let q = handler.queue();
-    if let Some(cur) = q.current() {
-        match cur.set_volume(vol) {
-            Ok(_) => {}
-            Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Couldn't change volume: {}", e)).await) }
-        };
-    }
+    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+        let handler = handler_lock.lock().await;
+        let q = handler.queue();
+        if let Some(cur) = q.current() {
+            match cur.set_volume(vol) {
+                Ok(_) => {}
+                Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Couldn't change volume: {}", e)).await) }
+            };
+        }
+    };
     Ok(())
 }
 
