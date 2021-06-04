@@ -105,7 +105,7 @@ async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
     let handler = handler_lock.lock().await;
     let queue = handler.queue();
     match queue.pause() {
-        Ok(_) => { check_msg(msg.channel_id.say(&ctx.http, "Current track is paused").await) }
+        Ok(_) => {}
         Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to pause track: {}", e)).await) }
     };
     Ok(())
@@ -118,7 +118,7 @@ async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
     let handler = handler_lock.lock().await;
     let queue = handler.queue();
     match queue.resume() {
-        Ok(_) => { check_msg(msg.channel_id.say(&ctx.http, "Continue playing").await) }
+        Ok(_) => {}
         Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to resume track: {}", e)).await) }
     };
     Ok(())
