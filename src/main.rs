@@ -64,7 +64,7 @@ async fn main() {
 
     let http = client.cache_and_http;
     let weather_channel = ChannelId::from(851487591064010753);
-    let receiver = &init("Riga,LV", "metric", "en", conf.2.as_str(), 1);
+    let receiver = &init("Riga,LV", "metric", "en", conf.2.as_str(), 10);
     loop {
         match update(receiver) {
             Some(response) => match response {
