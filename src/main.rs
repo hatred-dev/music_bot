@@ -94,7 +94,7 @@ async fn main() {
                         m
                     }).await);
                 }
-                Err(_) => {}
+                Err(e) => { println!("Could not fetch data because: {}", e) }
             },
             _ => {}
         }
