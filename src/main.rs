@@ -20,6 +20,8 @@ use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
 use std::sync::Arc;
 use serenity::prelude::Mutex;
+use openweathermap::{init, update};
+use serenity::model::id::ChannelId;
 
 const DISCORD_TOKEN: &str = "token";
 const PREFIX: &str = "prefix";
@@ -59,7 +61,46 @@ async fn main() {
         .start()
         .await
         .map_err(|why| println!("Client ended: {:?}", why));
+
+    let http = client.cache_and_http;
+    let weather_channel = ChannelId::from(851487591064010753);
+    let receiver = &init("Riga,LV", "metric", "en", conf.2.as_str(), 1);
+    loop {
+        match update(receiver) {
+            Some(response) => match response {
+                Ok(current) => {
+                    check_msg(weather_channel.send_message(&http.http, |m| {
+                        m.embed(|e| {
+                            e.author(|a| {
+                                a.name("HATRED");
+                                a.icon_url("https://cdn.discordapp.com/avatars/223800736809615360/59665bbb7ae61ddaa066b6586e9d18b5.png")
+                            });
+                            e.title(format!("Today's weather in **{}**", current.name.as_str()));
+                            e.thumbnail(format!("https://openweathermap.org/img/wn/{}@4x.png", current.weather[0].icon));
+                            e.colour(15105570);
+                            e.description(format!("Weather: **{}**\n\
+                        Temperature: **{}°C**\n\
+                        Feels like: **{}°C**\n\
+                        Humidity: **{}%**\n\
+                        Wind: **{}m/s**\n\
+                        Description: **{}**",
+                                                  current.weather[0].main.as_str().to_lowercase(),
+                                                  current.main.temp,
+                                                  current.main.feels_like,
+                                                  current.main.humidity,
+                                                  current.wind.speed,
+                                                  current.weather[0].description.as_str()))
+                        });
+                        m
+                    }).await);
+                }
+                Err(_) => {}
+            },
+            _ => {}
+        }
+    }
 }
+
 
 #[command]
 #[only_in(guilds)]
@@ -125,7 +166,6 @@ async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
     };
     Ok(())
 }
-
 
 #[command]
 #[only_in(guilds)]
@@ -215,7 +255,6 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
     }
     Ok(())
 }
-
 
 #[command]
 #[only_in(guilds)]
@@ -344,7 +383,6 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }
 
-
 #[command]
 #[only_in(guilds)]
 async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
@@ -450,7 +488,6 @@ async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Ar
         }
     };
 }
-
 
 fn load_config(file: &str) -> (String, String, String) {
     let mut file: File = File::open(file).expect("Unable to open file");
