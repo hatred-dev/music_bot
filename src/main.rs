@@ -64,7 +64,7 @@ async fn main() {
 
     let http = client.cache_and_http;
     let weather_channel = ChannelId::from(851487591064010753);
-    let receiver = &init("Riga,LV", "metric", "en", conf.2.as_str(), 10);
+    let receiver = &init("Riga,LV", "metric", "en", conf.2.as_str(), 2);
     loop {
         match update(receiver) {
             Some(response) => match response {
@@ -96,7 +96,7 @@ async fn main() {
                 }
                 Err(e) => { println!("Could not fetch data because: {}", e) }
             },
-            _ => {}
+            None => { println!("No updates") }
         }
     }
 }
