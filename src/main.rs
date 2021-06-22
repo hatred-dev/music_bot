@@ -67,7 +67,7 @@ async fn main() {
 }
 
 async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &CurrentWeather) {
-    id.send_message(http, |m| {
+    check_msg(id.send_message(http, |m| {
         m.embed(|e| {
             e.author(|a| {
                 a.name("HATRED");
@@ -90,7 +90,7 @@ async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &Current
                                   current.weather[0].description.as_str()))
         });
         m
-    }).await;
+    }).await);
 }
 
 #[command]
