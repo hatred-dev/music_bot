@@ -18,8 +18,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use yaml_rust::{YamlLoader, Yaml};
 use openweathermap::blocking::weather as open_weather;
+use openweathermap::{CurrentWeather};
 use std::sync::Arc;
 use serenity::prelude::Mutex;
+use serenity::model::id::ChannelId;
+use serenity::http::Http;
+
 
 const DISCORD_TOKEN: &str = "token";
 const PREFIX: &str = "prefix";
@@ -35,7 +39,8 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(list, deafen, join, leave, mute, play, ping, undeafen, unmute, stop, weather, volume, skip, pause, resume)]
+#[commands(list, deafen, join, leave, mute, play, ping,
+undeafen, unmute, stop, weather, volume, skip, pause, resume)]
 struct General;
 
 #[tokio::main]
@@ -61,6 +66,33 @@ async fn main() {
         .map_err(|why| println!("Client ended: {:?}", why));
 }
 
+async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &CurrentWeather) {
+    id.send_message(http, |m| {
+        m.embed(|e| {
+            e.author(|a| {
+                a.name("HATRED");
+                a.icon_url("https://cdn.discordapp.com/avatars/223800736809615360/59665bbb7ae61ddaa066b6586e9d18b5.png")
+            });
+            e.title(format!("Today's weather in **{}**", current.name.as_str()));
+            e.thumbnail(format!("https://openweathermap.org/img/wn/{}@4x.png", current.weather[0].icon));
+            e.colour(15105570);
+            e.description(format!("Weather: **{}**\n\
+                        Temperature: **{}°C**\n\
+                        Feels like: **{}°C**\n\
+                        Humidity: **{}%**\n\
+                        Wind: **{}m/s**\n\
+                        Description: **{}**",
+                                  current.weather[0].main.as_str().to_lowercase(),
+                                  current.main.temp,
+                                  current.main.feels_like,
+                                  current.main.humidity,
+                                  current.wind.speed,
+                                  current.weather[0].description.as_str()))
+        });
+        m
+    }).await;
+}
+
 #[command]
 #[only_in(guilds)]
 async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
@@ -71,30 +103,7 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
         return Ok(());
     }
     let open_weather_obj = &open_weather("Riga,LV", "metric", "en", open_weather_token).unwrap();
-    check_msg(msg.channel_id.send_message(&ctx.http, |m| {
-        m.embed(|e| {
-            e.author(|a| {
-                a.name("HATRED");
-                a.icon_url("https://cdn.discordapp.com/avatars/223800736809615360/59665bbb7ae61ddaa066b6586e9d18b5.png")
-            });
-            e.title(format!("Today's weather in **{}**", open_weather_obj.name.as_str()));
-            e.thumbnail(format!("https://openweathermap.org/img/wn/{}@4x.png", open_weather_obj.weather[0].icon));
-            e.colour(15105570);
-            e.description(format!("Weather: **{}**\n\
-                        Temperature: **{}°C**\n\
-                        Feels like: **{}°C**\n\
-                        Humidity: **{}%**\n\
-                        Wind: **{}m/s**\n\
-                        Description: **{}**",
-                                  open_weather_obj.weather[0].main.as_str().to_lowercase(),
-                                  open_weather_obj.main.temp,
-                                  open_weather_obj.main.feels_like,
-                                  open_weather_obj.main.humidity,
-                                  open_weather_obj.wind.speed,
-                                  open_weather_obj.weather[0].description.as_str()))
-        });
-        m
-    }).await);
+    send_weather_message(msg.channel_id, &ctx.http, open_weather_obj).await;
     Ok(())
 }
 
