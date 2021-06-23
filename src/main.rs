@@ -347,17 +347,17 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
         for (pos, track) in handler.queue().current_queue().iter().enumerate() {
             song_list.push_str(format!("{}. **{}**\n", (pos + 1).to_string().as_str(), track.metadata().title.as_ref().unwrap().as_str()).as_str());
         }
-        if song_list.is_empty() {
-            check_msg(msg.channel_id.say(
+        check_msg(if song_list.is_empty() {
+            msg.channel_id.say(
                 &ctx.http,
                 "Current song list is empty :(",
-            ).await)
+            ).await
         } else {
-            check_msg(msg.channel_id.say(
+            msg.channel_id.say(
                 &ctx.http,
                 format!("Current song list:\n{}", song_list),
-            ).await)
-        }
+            ).await
+        });
     }
     Ok(())
 }
