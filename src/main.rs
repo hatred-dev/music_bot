@@ -343,10 +343,21 @@ async fn list(ctx: &Context, msg: &Message) -> CommandResult {
     if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await
     {
         let handler = handler_lock.lock().await;
-        check_msg(msg.channel_id.say(
-            &ctx.http,
-            format!("Current song list: {:?}", handler.queue().current_queue()),
-        ).await)
+        let mut song_list = String::new();
+        for (pos, track) in handler.queue().current_queue().iter().enumerate() {
+            song_list.push_str(format!("{}. **{}**\n", (pos + 1).to_string().as_str(), track.metadata().title.as_ref().unwrap().as_str()).as_str());
+        }
+        if song_list.is_empty() {
+            check_msg(msg.channel_id.say(
+                &ctx.http,
+                "Current song list is empty :(",
+            ).await)
+        } else {
+            check_msg(msg.channel_id.say(
+                &ctx.http,
+                format!("Current song list:\n{}", song_list),
+            ).await)
+        }
     }
     Ok(())
 }
@@ -362,8 +373,8 @@ async fn stop(ctx: &Context, msg: &Message) -> CommandResult {
         .clone();
 
     if let Some(handler_lock) = manager.get(guild_id) {
-        let mut handler = handler_lock.lock().await;
-        handler.stop();
+        let handler = handler_lock.lock().await;
+        handler.queue().stop();
         check_msg(msg.channel_id.say(&ctx.http, "Stopped").await);
     } else {
         check_msg(
