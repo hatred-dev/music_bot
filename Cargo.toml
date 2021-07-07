@@ -8,14 +8,14 @@ edition = "2018"
 
 [dependencies]
 tracing = "0.1.26"
-tracing-subscriber = "0.2.18"
+tracing-subscriber = "0.2.19"
 tracing-futures = "0.2.5"
 openweathermap = "0.2.4"
 futures = { version = "0.3.15", features = ["executor", "thread-pool"] }
 serenity = "0.10.8"
-tokio = { version = "1.7.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.8.1", features = ["macros", "rt-multi-thread"] }
 yaml-rust = "0.4.5"
 
 [dependencies.songbird]
-version = "0.1.7"
+version = "0.1.8"
 features = ["builtin-queue"]
