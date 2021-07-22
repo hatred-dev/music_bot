@@ -1,7 +1,7 @@
-use songbird::{SerenityInit, Call};
-use serenity::client::Context;
+use openweathermap::{blocking::weather as open_weather, CurrentWeather};
 use serenity::{
     async_trait,
+    client::Context,
     client::{Client, EventHandler},
     framework::{
         standard::{
@@ -10,20 +10,16 @@ use serenity::{
         },
         StandardFramework,
     },
-    model::{channel::Message, gateway::Ready},
+    http::Http,
+    model::{channel::Message, gateway::Ready, id::ChannelId},
+    prelude::Mutex,
     Result as SerenityResult,
 };
-use songbird::input;
+use songbird::{input, Call, SerenityInit};
 use std::fs::File;
 use std::io::prelude::*;
-use yaml_rust::{YamlLoader, Yaml};
-use openweathermap::blocking::weather as open_weather;
-use openweathermap::{CurrentWeather};
 use std::sync::Arc;
-use serenity::prelude::Mutex;
-use serenity::model::id::ChannelId;
-use serenity::http::Http;
-
+use yaml_rust::{Yaml, YamlLoader};
 
 const DISCORD_TOKEN: &str = "token";
 const PREFIX: &str = "prefix";
@@ -39,8 +35,10 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(list, deafen, join, leave, mute, play, ping,
-undeafen, unmute, stop, weather, volume, skip, pause, resume)]
+#[commands(
+    list, deafen, join, leave, mute, play, ping, undeafen, unmute, stop, weather, volume, skip,
+    pause, resume
+)]
 struct General;
 
 #[tokio::main]
@@ -99,7 +97,14 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     let conf = load_config("config.yaml");
     let open_weather_token = conf.2.as_str();
     if open_weather_token == "" {
-        check_msg(msg.channel_id.say(&ctx.http, "You did not specify openweather api key in configuration file").await);
+        check_msg(
+            msg.channel_id
+                .say(
+                    &ctx.http,
+                    "You did not specify openweather api key in configuration file",
+                )
+                .await,
+        );
         return Ok(());
     }
     let open_weather_obj = &open_weather("Riga,LV", "metric", "en", open_weather_token).unwrap();
@@ -115,7 +120,11 @@ async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
         let queue = handler.queue();
         match queue.pause() {
             Ok(_) => {}
-            Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to pause track: {}", e)).await) }
+            Err(e) => check_msg(
+                msg.channel_id
+                    .say(&ctx.http, format!("Failed to pause track: {}", e))
+                    .await,
+            ),
         };
     };
     Ok(())
@@ -129,7 +138,11 @@ async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
         let queue = handler.queue();
         match queue.resume() {
             Ok(_) => {}
-            Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Failed to resume track: {}", e)).await) }
+            Err(e) => check_msg(
+                msg.channel_id
+                    .say(&ctx.http, format!("Failed to resume track: {}", e))
+                    .await,
+            ),
         };
     };
     Ok(())
@@ -191,7 +204,11 @@ async fn skip(ctx: &Context, msg: &Message) -> CommandResult {
     let queue = handler.queue();
     match queue.skip() {
         Ok(_) => {}
-        Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Couldn't skip track: {}", e)).await) }
+        Err(e) => check_msg(
+            msg.channel_id
+                .say(&ctx.http, format!("Couldn't skip track: {}", e))
+                .await,
+        ),
     };
     Ok(())
 }
@@ -207,7 +224,6 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
         .expect("Songbird Voice client placed in at initialisation.")
         .clone();
     let has_handler = manager.get(guild_id).is_some();
-
     if has_handler {
         if let Err(e) = manager.remove(guild_id).await {
             check_msg(
@@ -258,7 +274,11 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut vol = match args.single::<f32>() {
         Ok(volume) => volume,
         Err(_) => {
-            check_msg(msg.channel_id.say(&ctx.http, "Numeric value from 1 to 100 is needed").await);
+            check_msg(
+                msg.channel_id
+                    .say(&ctx.http, "Numeric value from 1 to 100 is needed")
+                    .await,
+            );
             return Ok(());
         }
     };
@@ -272,7 +292,11 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         if let Some(cur) = q.current() {
             match cur.set_volume(vol) {
                 Ok(_) => {}
-                Err(e) => { check_msg(msg.channel_id.say(&ctx.http, format!("Couldn't change volume: {}", e)).await) }
+                Err(e) => check_msg(
+                    msg.channel_id
+                        .say(&ctx.http, format!("Couldn't change volume: {}", e))
+                        .await,
+                ),
             };
         }
     };
@@ -304,7 +328,10 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
     let guild = msg.guild(&ctx.cache).await.unwrap();
     let guild_id = guild.id;
-    let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
+    let manager = songbird::get(ctx)
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
     if let Some(handler_lock) = manager.get(guild_id) {
         let mut handler = handler_lock.try_lock()?;
         let source = match input::ytdl(&url).await {
@@ -316,15 +343,41 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             }
         };
         if handler.queue().current_queue().len() >= 1 {
-            check_msg(msg.channel_id.say(
-                &ctx.http,
-                format!("Song placed in queue and will be played after **{}**",
-                        handler.queue().current().unwrap().metadata().title.as_ref().unwrap().as_str()
-                )).await);
+            check_msg(
+                msg.channel_id
+                    .say(
+                        &ctx.http,
+                        format!(
+                            "Song placed in queue and will be played after **{}**",
+                            handler
+                                .queue()
+                                .current()
+                                .unwrap()
+                                .metadata()
+                                .title
+                                .as_ref()
+                                .unwrap()
+                                .as_str()
+                        ),
+                    )
+                    .await,
+            );
         } else {
-            check_msg(msg.channel_id.say(&ctx.http, format!("Playing: **{}**", &source.metadata.title
-                .as_deref()
-                .unwrap_or("Unable to get title"))).await);
+            check_msg(
+                msg.channel_id
+                    .say(
+                        &ctx.http,
+                        format!(
+                            "Playing: **{}**",
+                            &source
+                                .metadata
+                                .title
+                                .as_deref()
+                                .unwrap_or("Unable to get title")
+                        ),
+                    )
+                    .await,
+            );
         }
         handler.enqueue_source(source);
     } else {
@@ -340,23 +393,27 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await
-    {
+    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
         let handler = handler_lock.lock().await;
         let mut song_list = String::new();
         for (pos, track) in handler.queue().current_queue().iter().enumerate() {
-            song_list.push_str(format!("{}. **{}**\n", (pos + 1).to_string().as_str(), track.metadata().title.as_ref().unwrap().as_str()).as_str());
+            song_list.push_str(
+                format!(
+                    "{}. **{}**\n",
+                    (pos + 1).to_string().as_str(),
+                    track.metadata().title.as_ref().unwrap().as_str()
+                )
+                .as_str(),
+            );
         }
         check_msg(if song_list.is_empty() {
-            msg.channel_id.say(
-                &ctx.http,
-                "Current song list is empty :(",
-            ).await
+            msg.channel_id
+                .say(&ctx.http, "Current song list is empty :(")
+                .await
         } else {
-            msg.channel_id.say(
-                &ctx.http,
-                format!("Current song list:\n{}", song_list),
-            ).await
+            msg.channel_id
+                .say(&ctx.http, format!("Current song list:\n{}", song_list))
+                .await
         });
     }
     Ok(())
@@ -458,9 +515,12 @@ fn check_msg(result: SerenityResult<Message>) {
 async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Arc<Mutex<Call>>> {
     let guild = msg.guild(&ctx.cache).await.unwrap();
     let guild_id = guild.id;
-    let manager = songbird::get(ctx).await.expect("Songbird Voice client placed in at initialisation.").clone();
+    let manager = songbird::get(ctx)
+        .await
+        .expect("Songbird Voice client placed in at initialisation.")
+        .clone();
     return match manager.get(guild_id) {
-        Some(handler) => { Some(handler) }
+        Some(handler) => Some(handler),
         None => {
             check_msg(msg.reply(ctx, "Not in a voice channel").await);
             None
@@ -471,10 +531,21 @@ async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Ar
 fn load_config(file: &str) -> (String, String, String) {
     let mut file: File = File::open(file).expect("Unable to open file");
     let mut contents: String = String::new();
-    file.read_to_string(&mut contents).expect("Unable to read file");
+    file.read_to_string(&mut contents)
+        .expect("Unable to read file");
     let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
-    let token: &str = docs[0usize][DISCORD_TOKEN].as_str().expect("Failed to parse token").trim();
-    let prefix: &str = docs[0usize][PREFIX].as_str().expect("Failed to parse prefix").trim();
+    let token: &str = docs[0usize][DISCORD_TOKEN]
+        .as_str()
+        .expect("Failed to parse token")
+        .trim();
+    let prefix: &str = docs[0usize][PREFIX]
+        .as_str()
+        .expect("Failed to parse prefix")
+        .trim();
     let weather_token: &str = docs[0usize][OPENWEATHER].as_str().unwrap_or("");
-    (token.to_string(), prefix.to_string(), weather_token.to_string())
+    (
+        token.to_string(),
+        prefix.to_string(),
+        weather_token.to_string(),
+    )
 }
