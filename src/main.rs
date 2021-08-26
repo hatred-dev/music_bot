@@ -317,6 +317,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             return Ok(());
         }
     };
+
     if !url.starts_with("http") {
         check_msg(
             msg.channel_id
