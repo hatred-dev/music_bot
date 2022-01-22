@@ -3,3 +3,4 @@
 *.html
 config.yaml
 .idea
+.vscode
