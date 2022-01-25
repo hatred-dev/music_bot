@@ -338,7 +338,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
         let source = match input::ytdl(&url).await {
             Ok(source) => source,
             Err(why) => {
-                let error = format!("Error staring source {:?}", why);
+                let error = format!("Error starting source {:?}", why);
                 check_msg(msg.channel_id.say(&ctx.http, error).await);
                 return Ok(());
             }
