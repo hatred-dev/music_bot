@@ -383,7 +383,6 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                                 .title
                                 .as_ref()
                                 .unwrap()
-                                .as_str()
                         ),
                     )
                     .await,
