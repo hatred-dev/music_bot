@@ -1,3 +1,4 @@
+use ini::Ini;
 use openweathermap::{blocking::weather as open_weather, CurrentWeather};
 use serenity::{
     async_trait,
@@ -16,10 +17,7 @@ use serenity::{
     Result as SerenityResult,
 };
 use songbird::{input, Call, SerenityInit};
-use std::fs::File;
-use std::io::prelude::*;
 use std::sync::Arc;
-use yaml_rust::{Yaml, YamlLoader};
 
 const DISCORD_TOKEN: &str = "token";
 const PREFIX: &str = "prefix";
@@ -44,19 +42,24 @@ struct General;
 struct Config {
     token: String,
     prefix: String,
-    weather_token: String,
+    openweather: OpenWeather,
 }
 
-struct WeatherToken;
-impl TypeMapKey for WeatherToken {
-    type Value = String;
+#[derive(Clone)]
+struct OpenWeather {
+    token: Option<String>,
+    location: Option<String>,
+    system: Option<String>,
+}
+impl TypeMapKey for OpenWeather {
+    type Value = OpenWeather;
 }
 
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     //load configuration file
-    let conf = load_config("config.yaml");
+    let conf = load_config("config.ini");
     let token = conf.token;
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(conf.prefix))
@@ -70,7 +73,7 @@ async fn main() {
         .expect("Err creating client");
     {
         let mut data = client.data.write().await;
-        data.insert::<WeatherToken>(conf.weather_token);
+        data.insert::<OpenWeather>(conf.openweather);
     }
 
     let _ = client
@@ -109,14 +112,14 @@ async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &Current
 #[command]
 #[only_in(guilds)]
 async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
-    let open_weather_token = {
+    let open_weather_conf = {
         let data_read = ctx.data.read().await;
         data_read
-            .get::<WeatherToken>()
-            .expect("Missing openweather token")
+            .get::<OpenWeather>()
+            .expect("Missing openweather configuration")
             .clone()
     };
-    if open_weather_token.is_empty() {
+    if open_weather_conf.token.is_none() {
         check_msg(
             msg.channel_id
                 .say(
@@ -127,7 +130,13 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
         );
         return Ok(());
     }
-    let open_weather_obj = &open_weather("Riga,LV", "metric", "en", &open_weather_token).unwrap();
+    let open_weather_obj = &open_weather(
+        open_weather_conf.location.as_ref().unwrap(),
+        open_weather_conf.system.as_ref().unwrap(),
+        "en",
+        open_weather_conf.token.as_ref().unwrap(),
+    )
+    .unwrap();
     send_weather_message(msg.channel_id, &ctx.http, open_weather_obj).await;
     Ok(())
 }
@@ -550,23 +559,32 @@ async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Ar
 }
 
 fn load_config(file: &str) -> Config {
-    let mut file: File = File::open(file).expect("Unable to open file");
-    let mut contents: String = String::new();
-    file.read_to_string(&mut contents)
-        .expect("Unable to read file");
-    let docs: Vec<Yaml> = YamlLoader::load_from_str(&contents).unwrap();
-    let token: &str = docs[0usize][DISCORD_TOKEN]
-        .as_str()
-        .expect("Failed to parse token")
-        .trim();
-    let prefix: &str = docs[0usize][PREFIX]
-        .as_str()
-        .expect("Failed to parse prefix")
-        .trim();
-    let weather_token: &str = docs[0usize][OPENWEATHER].as_str().unwrap_or("");
+    let conf = Ini::load_from_file(file).unwrap();
+    let discord_section = conf.section(Some("discord")).unwrap();
+    let token = discord_section.get(DISCORD_TOKEN).unwrap().to_string();
+    let prefix = discord_section.get(PREFIX).unwrap().to_string();
+    let weather_section = conf.section(Some("openweather")).unwrap();
+    let weather_token = weather_section.get(OPENWEATHER).map(str::to_string);
+    let mut location = String::new();
+    let mut system = String::new();
+    if weather_token.is_some() {
+        location = weather_section
+            .get("location")
+            .expect("Missing location.")
+            .to_string();
+        system = weather_section
+            .get("measurement_system")
+            .expect("Missing measurement system.")
+            .to_string();
+    }
+
     Config {
-        token: token.to_string(),
-        prefix: prefix.to_string(),
-        weather_token: weather_token.to_string(),
+        token,
+        prefix,
+        openweather: OpenWeather {
+            token: weather_token,
+            location: Some(location),
+            system: Some(system),
+        },
     }
 }
