@@ -12,7 +12,7 @@ use serenity::{
     },
     http::Http,
     model::{channel::Message, gateway::Ready, id::ChannelId},
-    prelude::Mutex,
+    prelude::{Mutex, TypeMapKey},
     Result as SerenityResult,
 };
 use songbird::{input, Call, SerenityInit};
@@ -41,14 +41,25 @@ impl EventHandler for Handler {
 )]
 struct General;
 
+struct Config {
+    token: String,
+    prefix: String,
+    weather_token: String,
+}
+
+struct WeatherToken;
+impl TypeMapKey for WeatherToken {
+    type Value = String;
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     //load configuration file
     let conf = load_config("config.yaml");
-    let token = String::from(conf.0.as_str());
+    let token = conf.token;
     let framework = StandardFramework::new()
-        .configure(|c| c.prefix(conf.1.as_str()))
+        .configure(|c| c.prefix(conf.prefix))
         .group(&GENERAL_GROUP);
 
     let mut client = Client::builder(&token)
@@ -57,6 +68,10 @@ async fn main() {
         .register_songbird()
         .await
         .expect("Err creating client");
+    {
+        let mut data = client.data.write().await;
+        data.insert::<WeatherToken>(conf.weather_token);
+    }
 
     let _ = client
         .start()
@@ -94,8 +109,13 @@ async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &Current
 #[command]
 #[only_in(guilds)]
 async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
-    let conf = load_config("config.yaml");
-    let open_weather_token = conf.2.as_str();
+    let open_weather_token = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<WeatherToken>()
+            .expect("Missing openweather token")
+            .clone()
+    };
     if open_weather_token.is_empty() {
         check_msg(
             msg.channel_id
@@ -107,7 +127,7 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
         );
         return Ok(());
     }
-    let open_weather_obj = &open_weather("Riga,LV", "metric", "en", open_weather_token).unwrap();
+    let open_weather_obj = &open_weather("Riga,LV", "metric", "en", &open_weather_token).unwrap();
     send_weather_message(msg.channel_id, &ctx.http, open_weather_obj).await;
     Ok(())
 }
@@ -529,7 +549,7 @@ async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Ar
     };
 }
 
-fn load_config(file: &str) -> (String, String, String) {
+fn load_config(file: &str) -> Config {
     let mut file: File = File::open(file).expect("Unable to open file");
     let mut contents: String = String::new();
     file.read_to_string(&mut contents)
@@ -544,9 +564,9 @@ fn load_config(file: &str) -> (String, String, String) {
         .expect("Failed to parse prefix")
         .trim();
     let weather_token: &str = docs[0usize][OPENWEATHER].as_str().unwrap_or("");
-    (
-        token.to_string(),
-        prefix.to_string(),
-        weather_token.to_string(),
-    )
+    Config {
+        token: token.to_string(),
+        prefix: prefix.to_string(),
+        weather_token: weather_token.to_string(),
+    }
 }
