@@ -14,7 +14,7 @@ openweathermap = "0.2.4"
 futures = { version = "0.3.21", features = ["executor", "thread-pool"] }
 serenity = "0.10.10"
 tokio = { version = "1.16.1", features = ["macros", "rt-multi-thread"] }
-yaml-rust = "0.4.5"
+rust-ini = "0.17.0"
 
 [dependencies.songbird]
 version = "0.2.1"

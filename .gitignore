@@ -1,6 +1,6 @@
 /target
 *.exe
 *.html
-config.yaml
+config.ini
 .idea
 .vscode
