@@ -19,10 +19,6 @@ use serenity::{
 use songbird::{input, Call, SerenityInit};
 use std::sync::Arc;
 
-const DISCORD_TOKEN: &str = "token";
-const PREFIX: &str = "prefix";
-const OPENWEATHER: &str = "openweather_token";
-
 struct Handler;
 
 #[async_trait]
@@ -561,10 +557,10 @@ async fn acquire_lock_and_check_voice(ctx: &Context, msg: &Message) -> Option<Ar
 fn load_config(file: &str) -> Config {
     let conf = Ini::load_from_file(file).unwrap();
     let discord_section = conf.section(Some("discord")).unwrap();
-    let token = discord_section.get(DISCORD_TOKEN).unwrap().to_string();
-    let prefix = discord_section.get(PREFIX).unwrap().to_string();
+    let token = discord_section.get("token").unwrap().to_string();
+    let prefix = discord_section.get("prefix").unwrap().to_string();
     let weather_section = conf.section(Some("openweather")).unwrap();
-    let weather_token = weather_section.get(OPENWEATHER).map(str::to_string);
+    let weather_token = weather_section.get("openweather_token").map(str::to_string);
     let mut location = String::new();
     let mut system = String::new();
     if weather_token.is_some() {
