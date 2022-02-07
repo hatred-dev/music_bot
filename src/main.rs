@@ -96,7 +96,7 @@ async fn send_weather_message(id: ChannelId, http: &Arc<Http>, current: &Current
 async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
     let conf = load_config("config.yaml");
     let open_weather_token = conf.2.as_str();
-    if open_weather_token == "" {
+    if open_weather_token.is_empty() {
         check_msg(
             msg.channel_id
                 .say(
@@ -115,7 +115,7 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+    if let Some(handler_lock) = acquire_lock_and_check_voice(ctx, msg).await {
         let handler = handler_lock.lock().await;
         let queue = handler.queue();
         match queue.pause() {
@@ -133,7 +133,7 @@ async fn pause(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+    if let Some(handler_lock) = acquire_lock_and_check_voice(ctx, msg).await {
         let handler = handler_lock.lock().await;
         let queue = handler.queue();
         match queue.resume() {
@@ -151,7 +151,7 @@ async fn resume(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn deafen(ctx: &Context, msg: &Message) -> CommandResult {
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
+    let handler_lock = acquire_lock_and_check_voice(ctx, msg).await.unwrap();
     let mut handler = handler_lock.lock().await;
     if handler.is_deaf() {
         check_msg(msg.channel_id.say(&ctx.http, "Already deafened").await);
@@ -199,7 +199,7 @@ async fn join(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn skip(ctx: &Context, msg: &Message) -> CommandResult {
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
+    let handler_lock = acquire_lock_and_check_voice(ctx, msg).await.unwrap();
     let handler = handler_lock.lock().await;
     let queue = handler.queue();
     match queue.skip() {
@@ -243,7 +243,7 @@ async fn leave(ctx: &Context, msg: &Message) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn mute(ctx: &Context, msg: &Message) -> CommandResult {
-    let handler_lock = acquire_lock_and_check_voice(&ctx, &msg).await.unwrap();
+    let handler_lock = acquire_lock_and_check_voice(ctx, msg).await.unwrap();
     let mut handler = handler_lock.lock().await;
 
     if handler.is_mute() {
@@ -285,8 +285,8 @@ async fn volume(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     if vol > limit {
         vol = limit;
     }
-    vol = vol / limit;
-    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+    vol /= limit;
+    if let Some(handler_lock) = acquire_lock_and_check_voice(ctx, msg).await {
         let handler = handler_lock.lock().await;
         let q = handler.queue();
         if let Some(cur) = q.current() {
@@ -343,7 +343,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 return Ok(());
             }
         };
-        if handler.queue().current_queue().len() >= 1 {
+        if !handler.queue().current_queue().is_empty() {
             check_msg(
                 msg.channel_id
                     .say(
@@ -394,7 +394,7 @@ async fn play(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 #[command]
 #[only_in(guilds)]
 async fn list(ctx: &Context, msg: &Message) -> CommandResult {
-    if let Some(handler_lock) = acquire_lock_and_check_voice(&ctx, &msg).await {
+    if let Some(handler_lock) = acquire_lock_and_check_voice(ctx, msg).await {
         let handler = handler_lock.lock().await;
         let mut song_list = String::new();
         for (pos, track) in handler.queue().current_queue().iter().enumerate() {
