@@ -17,8 +17,8 @@ use serenity::{
     Result as SerenityResult,
 };
 use songbird::{input, Call, SerenityInit};
+use std::option::Option::None;
 use std::sync::Arc;
-
 struct Handler;
 
 #[async_trait]
@@ -38,17 +38,17 @@ struct General;
 struct Config {
     token: String,
     prefix: String,
-    openweather: OpenWeather,
+    openweather: Option<OpenWeather>,
 }
 
 #[derive(Clone)]
 struct OpenWeather {
-    token: Option<String>,
-    location: Option<String>,
-    system: Option<String>,
+    token: String,
+    location: String,
+    system: String,
 }
 impl TypeMapKey for OpenWeather {
-    type Value = OpenWeather;
+    type Value = Option<OpenWeather>;
 }
 
 #[tokio::main]
@@ -115,26 +115,26 @@ async fn weather(ctx: &Context, msg: &Message) -> CommandResult {
             .expect("Missing openweather configuration")
             .clone()
     };
-    if open_weather_conf.token.is_none() {
-        check_msg(
-            msg.channel_id
-                .say(
-                    &ctx.http,
-                    "You did not specify openweather api key in configuration file",
-                )
-                .await,
-        );
-        return Ok(());
+
+    match open_weather_conf {
+        Some(conf) => {
+            let open_weather_obj =
+                &open_weather(&conf.location, &conf.system, "en", &conf.token).unwrap();
+            send_weather_message(msg.channel_id, &ctx.http, open_weather_obj).await;
+            Ok(())
+        }
+        None => {
+            check_msg(
+                msg.channel_id
+                    .say(
+                        &ctx.http,
+                        "You did not configure openweather in configuration file",
+                    )
+                    .await,
+            );
+            return Ok(());
+        }
     }
-    let open_weather_obj = &open_weather(
-        open_weather_conf.location.as_ref().unwrap(),
-        open_weather_conf.system.as_ref().unwrap(),
-        "en",
-        open_weather_conf.token.as_ref().unwrap(),
-    )
-    .unwrap();
-    send_weather_message(msg.channel_id, &ctx.http, open_weather_obj).await;
-    Ok(())
 }
 
 #[command]
@@ -559,27 +559,24 @@ fn load_config(file: &str) -> Config {
     let token = discord_section.get("token").unwrap().to_string();
     let prefix = discord_section.get("prefix").unwrap().to_string();
     let weather_section = conf.section(Some("openweather")).unwrap();
-    let weather_token = weather_section.get("openweather_token").map(str::to_string);
-    let mut location = String::new();
-    let mut system = String::new();
-    if weather_token.is_some() {
-        location = weather_section
-            .get("location")
-            .expect("Missing location.")
-            .to_string();
-        system = weather_section
-            .get("measurement_system")
-            .expect("Missing measurement system.")
-            .to_string();
-    }
+    let open_weather = weather_section
+        .get("openweather_token")
+        .map(str::to_string)
+        .map(|val| OpenWeather {
+            token: val,
+            location: weather_section
+                .get("location")
+                .map(str::to_string)
+                .expect("Missing location"),
+            system: weather_section
+                .get("measurement_system")
+                .map(str::to_string)
+                .expect("Missing measurement system."),
+        });
 
     Config {
         token,
         prefix,
-        openweather: OpenWeather {
-            token: weather_token,
-            location: Some(location),
-            system: Some(system),
-        },
+        openweather: open_weather,
     }
 }
