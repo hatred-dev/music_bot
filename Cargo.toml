@@ -7,15 +7,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tracing = "0.1.30"
-tracing-subscriber = "0.3.8"
+tracing = "0.1.31"
+tracing-subscriber = "0.3.9"
 tracing-futures = "0.2.5"
 openweathermap = "0.2.4"
 futures = { version = "0.3.21", features = ["executor", "thread-pool"] }
 serenity = "0.10.10"
-tokio = { version = "1.16.1", features = ["macros", "rt-multi-thread"] }
+tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
 rust-ini = "0.17.0"
 
 [dependencies.songbird]
-version = "0.2.1"
+version = "0.2.2"
 features = ["builtin-queue", "yt-dlp"]
