@@ -14,8 +14,8 @@ openweathermap = "0.2.4"
 futures = { version = "0.3.21", features = ["executor", "thread-pool"] }
 serenity = "0.10.10"
 tokio = { version = "1.17.0", features = ["macros", "rt-multi-thread"] }
-rust-ini = "0.17.0"
+rust-ini = "0.18.0"
+songbird = {version = "0.2.2", features=["builtin-queue", "yt-dlp"]}
 
-[dependencies.songbird]
-version = "0.2.2"
-features = ["builtin-queue", "yt-dlp"]
+[profile.release]
+strip = "debuginfo"
