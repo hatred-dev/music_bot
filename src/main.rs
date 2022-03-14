@@ -6,7 +6,7 @@ use serenity::{
     client::{Client, EventHandler},
     framework::{
         standard::{
-            macros::{command, group},
+            macros::{command, group, hook},
             Args, CommandResult,
         },
         StandardFramework,
@@ -39,6 +39,7 @@ struct Config {
     token: String,
     prefix: String,
     openweather: Option<OpenWeather>,
+    channels: Option<BindChannels>,
 }
 
 #[derive(Clone)]
@@ -51,6 +52,28 @@ impl TypeMapKey for OpenWeather {
     type Value = Option<OpenWeather>;
 }
 
+#[derive(Clone, Debug)]
+struct BindChannels(Vec<ChannelId>);
+
+impl TypeMapKey for BindChannels {
+    type Value = Option<BindChannels>;
+}
+
+#[hook]
+async fn before_hook(ctx: &Context, msg: &Message, _: &str) -> bool {
+    let channels = {
+        let data_read = ctx.data.read().await;
+        data_read
+            .get::<BindChannels>()
+            .expect("Missing openweather configuration")
+            .clone()
+    };
+    if let Some(channels) = channels {
+        return channels.0.contains(&msg.channel_id);
+    }
+    true
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
@@ -59,7 +82,8 @@ async fn main() {
     let token = conf.token;
     let framework = StandardFramework::new()
         .configure(|c| c.prefix(conf.prefix))
-        .group(&GENERAL_GROUP);
+        .group(&GENERAL_GROUP)
+        .before(before_hook);
 
     let mut client = Client::builder(&token)
         .event_handler(Handler)
@@ -70,6 +94,7 @@ async fn main() {
     {
         let mut data = client.data.write().await;
         data.insert::<OpenWeather>(conf.openweather);
+        data.insert::<BindChannels>(conf.channels);
     }
 
     let _ = client
@@ -558,6 +583,16 @@ fn load_config(file: &str) -> Config {
     let discord_section = conf.section(Some("discord")).unwrap();
     let token = discord_section.get("token").unwrap().to_string();
     let prefix = discord_section.get("prefix").unwrap().to_string();
+    let channels = {
+        discord_section.get("channels").map(|channels| {
+            BindChannels(
+                channels
+                    .split(',')
+                    .map(|item| ChannelId(item.trim().parse::<u64>().unwrap()))
+                    .collect::<Vec<ChannelId>>(),
+            )
+        })
+    };
     let weather_section = conf.section(Some("openweather")).unwrap();
     let open_weather = weather_section
         .get("openweather_token")
@@ -573,10 +608,10 @@ fn load_config(file: &str) -> Config {
                 .map(str::to_string)
                 .expect("Missing measurement system."),
         });
-
     Config {
         token,
         prefix,
         openweather: open_weather,
+        channels,
     }
 }
