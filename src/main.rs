@@ -62,14 +62,13 @@ impl TypeMapKey for BindChannels {
 //check binded channels
 #[hook]
 async fn before_hook(ctx: &Context, msg: &Message, _: &str) -> bool {
-    let channels = {
+    if let Some(channels) = {
         let data_read = ctx.data.read().await;
         data_read
             .get::<BindChannels>()
             .expect("Missing channels configuration")
             .clone()
-    };
-    if let Some(channels) = channels {
+    } {
         return channels.0.contains(&msg.channel_id);
     }
     true
