@@ -59,13 +59,14 @@ impl TypeMapKey for BindChannels {
     type Value = Option<BindChannels>;
 }
 
+//check binded channels
 #[hook]
 async fn before_hook(ctx: &Context, msg: &Message, _: &str) -> bool {
     let channels = {
         let data_read = ctx.data.read().await;
         data_read
             .get::<BindChannels>()
-            .expect("Missing openweather configuration")
+            .expect("Missing channels configuration")
             .clone()
     };
     if let Some(channels) = channels {
